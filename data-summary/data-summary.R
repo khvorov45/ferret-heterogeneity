@@ -109,18 +109,12 @@ mean_diff_plot <- data %>%
   summarise(
     .groups = "drop",
     log2titre_mean = mean(log2titre),
-    log2titre_sd = sd(log2titre),
-    log2titre_mean_se = log2titre_sd / sqrt(n())
   ) %>%
-  group_by(experiment, day, virus_short, virus_year) %>%
-  summarise(
+  pivot_wider(names_from = "dose", values_from = "log2titre_mean") %>%
+  mutate(
     .groups = "drop",
-    log2titre_mean_diff42 = log2titre_mean[dose == "10^4"] - log2titre_mean[dose == "10^2"],
-    log2titre_mean_diff64 = ifelse(
-      experiment == 1,
-      log2titre_mean[dose == "10^6"] - log2titre_mean[dose == "10^4"],
-      NA_real_
-    ),
+    log2titre_mean_diff42 = `10^4` - `10^2`,
+    log2titre_mean_diff64 = `10^6` - `10^4`,
   ) %>%
   pivot_longer(contains("log2titre_mean_diff"), names_to = "dose", values_to = "diff") %>%
   filter(!is.na(diff)) %>%
