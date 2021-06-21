@@ -100,3 +100,58 @@ titre_range_plot <- data %>%
   geom_histogram(binwidth = 0.1, col = "gray25")
 
 save_plot(titre_range_plot, "ranges", width = 15, height = 15)
+
+data %>% arrange(ferret) %>% filter(ferret == 99683)
+
+mean_diff_plot <- data %>%
+  mutate(log2titre = log2(titre)) %>%
+  group_by(experiment, day, dose, virus_short, virus_year) %>%
+  summarise(
+    .groups = "drop",
+    log2titre_mean = mean(log2titre),
+    log2titre_sd = sd(log2titre),
+    log2titre_mean_se = log2titre_sd / sqrt(n())
+  ) %>%
+  group_by(experiment, day, virus_short, virus_year) %>%
+  summarise(
+    .groups = "drop",
+    log2titre_mean_diff42 = log2titre_mean[dose == "10^4"] - log2titre_mean[dose == "10^2"],
+    log2titre_mean_diff64 = ifelse(
+      experiment == 1,
+      log2titre_mean[dose == "10^6"] - log2titre_mean[dose == "10^4"],
+      NA_real_
+    ),
+  ) %>%
+  pivot_longer(contains("log2titre_mean_diff"), names_to = "dose", values_to = "diff") %>%
+  filter(!is.na(diff)) %>%
+  ggplot(aes(diff)) +
+  ggdark::dark_theme_bw(verbose = FALSE) +
+  theme(
+    strip.background = element_blank(),
+    panel.spacing = unit(0, "null")
+  ) +
+  scale_y_continuous("Count", expand = expansion(c(0, 0.1))) +
+  scale_x_continuous("Virus log2 mean difference") +
+  facet_grid(
+    dose ~ experiment + day,
+    labeller = function(labs) {
+      if ("day" %in% names(labs)) {
+        labs$day <- paste("Day", labs$day)
+      }
+      if ("experiment" %in% names(labs)) {
+        labs$experiment <- paste("Experiment", labs$experiment)
+      }
+      if ("dose" %in% names(labs)) {
+        labs$dose <- recode(
+          labs$dose,
+          "log2titre_mean_diff42" = "Dose 4 - 2",
+          "log2titre_mean_diff64" = "Dose 6 - 4",
+        )
+      }
+      labs
+    }
+  ) +
+  geom_vline(xintercept = 0, lty = "11") +
+  geom_histogram(binwidth = 0.1, col = "gray25")
+
+save_plot(mean_diff_plot, "mean-diff", width = 15, height = 12)
